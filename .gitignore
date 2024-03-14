@@ -1,2 +1,3 @@
 .scripts/
 .dal/DBConnect.ts
+.env
