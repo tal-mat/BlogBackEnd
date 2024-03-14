@@ -58,11 +58,3 @@ CREATE TABLE IF NOT EXISTS public.post
 ALTER TABLE public."user"
 ADD CONSTRAINT unique_user_id UNIQUE (id);
 
--- Create some users for tests
-INSERT INTO public."user"(
-    id, "firstName", "lastName", username, password, email, "birthDate", gender, address, "phoneNumber", "registrationDate", "accountStatus", role)
-VALUES (1, 'Tal', 'Matsil', 'Tal', `123`', 'talmatsil@gmail.com', '1993-02-25', 'female', 'Bazelet 61 Street, Rosh Haayin, Israel', '050-8866631', '2024-01-19', true, 'admin');
-
-INSERT INTO public."user"(\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    id, "firstName", "lastName", username, password, email, "birthDate", gender, address, "phoneNumber", "registrationDate", "accountStatus", role)
-VALUES (2, 'Tal', 'Matsil', 'TalM', '123', 'tal.matsil@grunitech.com', '1993-02-25', 'female', 'Bazelet 61 Street, Rosh Haayin, Israel', '050-8866631', '2024-01-19', true, 'admin');
