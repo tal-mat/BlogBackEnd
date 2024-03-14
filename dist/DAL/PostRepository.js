@@ -59,41 +59,8 @@ class PostRepository {
             return result.rows[0];
         });
     }
-    // async getItems(from?: number | null, to?: number | null, filterText?: string | null): Promise<Post[]> {
-    //     // Replace "NaN" with null
-    //     const sanitizedFrom = isNaN(from as number) ? null : from;
-    //     const sanitizedTo = isNaN(to as number) ? null : to;
-    //
-    //     //         SELECT "id", "title", "imageUrl"
-    //     const query = `
-    //     SELECT *
-    //     FROM post
-    //     WHERE
-    //       (("id" BETWEEN $1 AND $2) OR ($1 IS NULL AND $2 IS NULL))
-    //       AND (LOWER("title") LIKE LOWER($3) OR $3 IS NULL);
-    // `;
-    //
-    //     const result = await pool.query(query, [sanitizedFrom, sanitizedTo, `%${filterText}%`]);
-    //
-    //     if (result.rows.length === 0) {
-    //         throw new Error(`No posts found`);
-    //     }
-    //
-    //     // Directly return the array of posts
-    //     return result.rows as Post[];
-    // }
     getItems(from, to, filterText, lastName) {
         return __awaiter(this, void 0, void 0, function* () {
-            // console.log('Parameters before execution:', {
-            //     'from': from,
-            //     'to': to,
-            //     'filterText': filterText,
-            //     'lastName': lastName,
-            // });
-            // Try to run a simple test query to check the database connection
-            const testQuery = 'SELECT 1;';
-            const testResult = yield DBConnect_1.default.query(testQuery);
-            // console.log('Test Result:', testResult.rows);
             // Query with conditions and inner join to users
             const conditions = [];
             const params = [];
@@ -116,12 +83,8 @@ class PostRepository {
         INNER JOIN public.user AS U ON P."postedBy" = U."id"
         ${whereClause};
     `;
-            // console.log('Query:', query);
-            // Execute the query with conditions and inner join
             const result = yield DBConnect_1.default.query(query, params);
             if (result.rows.length === 0) {
-                // Handle no results if needed
-                // throw new Error('No posts found.');
             }
             return result.rows;
         });

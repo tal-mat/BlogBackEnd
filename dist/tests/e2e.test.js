@@ -17,6 +17,7 @@ const Index_1 = require("../Index");
 describe('API Endpoints', () => {
     let postId;
     let userId;
+    // post tests
     it('GET /posts should return all posts', () => __awaiter(void 0, void 0, void 0, function* () {
         const response = yield (0, supertest_1.default)(Index_1.app).get('/posts');
         expect(response.status).toBe(200);
@@ -63,6 +64,7 @@ describe('API Endpoints', () => {
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty('id', postId);
     }));
+    // user tests
     it('GET /users should return all users', () => __awaiter(void 0, void 0, void 0, function* () {
         const response = yield (0, supertest_1.default)(Index_1.app).get('/users');
         expect(response.status).toBe(200);

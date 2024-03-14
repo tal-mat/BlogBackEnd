@@ -112,6 +112,20 @@ export class UserRepository implements DataAccess<User> {
         return user;
     }
 
+    async checkUserIsValid(email: string): Promise<boolean> {
+        // if (!email || typeof email !== 'string') {
+        //     throw new Error('Email must be non-empty strings.');
+        // }
+
+        const emailExists = await this.userExistsWithEmail(email);
+
+        if (emailExists) {
+            throw new DuplicateEmailError(email);
+        }
+
+        return true;
+    }
+
     private async userExistsWithUsername(username: string): Promise<boolean> {
         const query = 'SELECT * FROM public."user" WHERE username = $1';
         const result = await pool.query(query, [username]);

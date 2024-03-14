@@ -133,5 +133,36 @@ export class UserController {
         }
     }
 
+    async checkUserIsValid(req: Request, res: Response): Promise<void> {
+        const email = req.query.email as string;
+
+        try {
+            const check = await this.userBL.checkUserIsValid(email);
+            if (check === true) {
+                res.status(200).json({ check });
+            } else {
+                throw new Error("An unexpected error occurred");
+            }
+        } catch (error) {
+            console.error('Error in checkUserIsValid:', error);
+
+            let statusCode: number;
+            let errorType: string;
+            let errorMessage: string;
+
+            if (error instanceof DuplicateEmailError) {
+                statusCode = 409;
+                errorType = 'DuplicateEmailError';
+                errorMessage = 'Duplicate email';
+            } else {
+                statusCode = 500; // Default to Internal Server Error
+                errorType = 'InternalServerError';
+                errorMessage = 'An unexpected error occurred';
+            }
+            res.status(statusCode).json({ error: errorMessage, errorType, details: (error as Error).message });
+        }
+    }
+
+
 
 }

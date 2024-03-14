@@ -80,5 +80,22 @@ export class UserBL {
         }
     }
 
+    async checkUserIsValid(email: string): Promise<boolean> {
+        try {
+            const check = await this.userDataAccess.checkUserIsValid(email);
+            return check;
+        } catch (error) {
+            // @ts-ignore
+            console.error('Error in checkUserIsValid in BL:', error.message);
+
+            if (error instanceof DuplicateEmailError) {
+                throw new DuplicateEmailError(error.message);
+            } else {
+                // @ts-ignore
+                throw new Error(error.message);
+            }
+        }
+    }
+
 
 }

@@ -37,13 +37,6 @@ class PostBL {
             return post;
         });
     }
-    // async getPosts(from?: number | null, to?: number | null, filterText?: string | null): Promise<Post[]> {
-    //     const posts = await this.postDataAccess.getItems(from, to, filterText);
-    //     if (!posts) {
-    //         throw new Error(`Posts were not found`);
-    //     }
-    //     return posts;
-    // }
     getPosts(from, to, filterText, lastName) {
         return __awaiter(this, void 0, void 0, function* () {
             const posts = yield this.postDataAccess.getItems(from, to, filterText, lastName);

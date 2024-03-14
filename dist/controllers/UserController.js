@@ -22,9 +22,7 @@ class UserController {
     addUser(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             const userData = req.body;
-            console.log("userData in controller :", userData);
             const user = new User_1.default(userData.id, userData.firstName, userData.lastName, userData.username, userData.password, userData.email, userData.birthDate, userData.gender, userData.address, userData.phoneNumber, userData.registrationDate, userData.accountStatus, userData.role);
-            console.log("new user in controller :", user);
             try {
                 yield this.userBL.addUser(user);
                 res.status(201).json({ message: 'User created successfully' });
@@ -49,7 +47,6 @@ class UserController {
                     errorType = 'InternalServerError';
                     errorMessage = 'An unexpected error occurred';
                 }
-                console.log(`Responding with status ${statusCode} and error: ${errorMessage}`);
                 res.status(statusCode).json({ error: errorMessage, errorType, details: error.message });
             }
         });
@@ -130,6 +127,37 @@ class UserController {
                 }
                 console.error(`Responding with status ${statusCode} and error: ${errorMessage}`);
                 res.status(statusCode).json({ error: errorMessage, errorType });
+            }
+        });
+    }
+    checkUserIsValid(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const email = req.query.email;
+            try {
+                const check = yield this.userBL.checkUserIsValid(email);
+                if (check === true) {
+                    res.status(200).json({ check });
+                }
+                else {
+                    throw new Error("An unexpected error occurred");
+                }
+            }
+            catch (error) {
+                console.error('Error in checkUserIsValid:', error);
+                let statusCode;
+                let errorType;
+                let errorMessage;
+                if (error instanceof CustomErrors_1.DuplicateEmailError) {
+                    statusCode = 409;
+                    errorType = 'DuplicateEmailError';
+                    errorMessage = 'Duplicate email';
+                }
+                else {
+                    statusCode = 500; // Default to Internal Server Error
+                    errorType = 'InternalServerError';
+                    errorMessage = 'An unexpected error occurred';
+                }
+                res.status(statusCode).json({ error: errorMessage, errorType, details: error.message });
             }
         });
     }

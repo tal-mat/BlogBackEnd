@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DuplicateEmailError = exports.DuplicateUsernameError = exports.IncorrectPasswordError = exports.UserNotFoundError = void 0;
-// "../errors/CustomErrors";
 class UserNotFoundError extends Error {
     constructor(username) {
         super(`User with username '${username}' not found`);

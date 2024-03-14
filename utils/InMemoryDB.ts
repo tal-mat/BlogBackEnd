@@ -41,6 +41,26 @@ class InMemoryDB {
     deletePost(id: number) {
         this.posts.delete(id);
     }
+
+    // getPosts(): [str] {
+    //     const posts = ["flower are the best", "banana is yellow", "apple is not only fruit", "AI of google is the best", "Chatgpt AI wants to be the best too"];
+    //     // @ts-ignore
+    //     return posts;
+    //
+    // }
+
+    // searchNave(textFilter: string): Boolean {
+    // const posts = getPosts();
+    // result = [];
+    // for (let i = 0; i < posts.length; i++) {
+    //     for (let word = 0; word < post.length; word++) {
+    //         if (textFilter === word):
+    //         {
+    //             result.push(post);
+    //         }
+    //     }
+    // }
+    // return result;
 }
 
 export default InMemoryDB;

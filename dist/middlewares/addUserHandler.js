@@ -8,7 +8,6 @@ const addUserHandler = (req, res, next) => {
         }
         console.log('Adding user:', userData);
     }
-    // Call next to continue the request processing
     next();
 };
 exports.default = addUserHandler;

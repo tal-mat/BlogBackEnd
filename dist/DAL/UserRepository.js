@@ -107,6 +107,18 @@ class UserRepository {
             return user;
         });
     }
+    checkUserIsValid(email) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // if (!email || typeof email !== 'string') {
+            //     throw new Error('Email must be non-empty strings.');
+            // }
+            const emailExists = yield this.userExistsWithEmail(email);
+            if (emailExists) {
+                throw new CustomErrors_1.DuplicateEmailError(email);
+            }
+            return true;
+        });
+    }
     userExistsWithUsername(username) {
         return __awaiter(this, void 0, void 0, function* () {
             const query = 'SELECT * FROM public."user" WHERE username = $1';

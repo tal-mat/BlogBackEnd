@@ -1,5 +1,4 @@
 "use strict";
-// activityLogger.ts
 Object.defineProperty(exports, "__esModule", { value: true });
 const activityLogger = (req, res, next) => {
     const timestamp = new Date().toISOString();

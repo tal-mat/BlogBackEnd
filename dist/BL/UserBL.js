@@ -91,5 +91,24 @@ class UserBL {
             }
         });
     }
+    checkUserIsValid(email) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const check = yield this.userDataAccess.checkUserIsValid(email);
+                return check;
+            }
+            catch (error) {
+                // @ts-ignore
+                console.error('Error in checkUserIsValid in BL:', error.message);
+                if (error instanceof CustomErrors_1.DuplicateEmailError) {
+                    throw new CustomErrors_1.DuplicateEmailError(error.message);
+                }
+                else {
+                    // @ts-ignore
+                    throw new Error(error.message);
+                }
+            }
+        });
+    }
 }
 exports.UserBL = UserBL;

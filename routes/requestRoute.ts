@@ -25,7 +25,8 @@ requestsRoute.post('/', async (req: Request, res: Response, next) => {
     // Use oAuth2Client to generate the URL that will be used to initiate the Google authentication
     const authorizeUrl = oAuth2Client.generateAuthUrl({
         access_type: 'offline',
-        scope: 'https://www.googleapis.com/auth/userinfo.profile openid',
+        // scope: 'https://www.googleapis.com/auth/userinfo.profile openid',
+        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
         prompt: 'consent'
     });
 

@@ -1,32 +1,40 @@
 import express, { Request, Response } from 'express';
-import user from "../models/ORM/User";
 const router = express.Router();
 const dotenv = require('dotenv');
 dotenv.config();
+const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 
-// Define an interface for user data
+// Define an interface for google user data
 interface AppUserData {
     // id: number;
     firstName: string;
     lastName: string;
-    username: string;
-    password: string;
     email: string;
-    birthDate: Date;
-    gender: string;
-    address: string;
-    phoneNumber: string;
     registrationDate: Date;
     accountStatus: boolean;
     role: string;
+}
+
+// Caesar cipher encryption function for encode the userData as token to the front side
+function caesarCipher(text: string, shift: number): string {
+    return text
+        .split('')
+        .map(char => {
+            const code = char.charCodeAt(0);
+            if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+                return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+            } else {
+                return char;
+            }
+        })
+        .join('');
 }
 
 // Function to fetch user data from Google API using the access token
 async function getUsersData(access_token: string) {
     const response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${access_token}`);
     const data = await response.json();
-    // console.log('data', data);
     return data;
 }
 
@@ -37,30 +45,24 @@ async function sendUserData(userData: AppUserData) {
         let newUser = {
             "firstName": userData.firstName,
             "lastName": userData.lastName,
-            "username": userData.username,
-            "password": userData.password,
             "email": userData.email,
-            "birthDate": userData.birthDate,
-            "gender": userData.gender,
-            "address": userData.address,
-            "phoneNumber": userData.phoneNumber,
             "registrationDate": date.current,
             "accountStatus": true,
             "role": "user",
         };
 
-        const response = await fetch('http://127.0.0.1:4000/users', {
-            method: "POST",
-            body: JSON.stringify(newUser),
+        const response = await fetch('http://127.0.0.1:4000/users/valid', {
+            method: "GET",
+            body: JSON.stringify(newUser.email),
             headers: {
                 'Content-Type': 'application/json'
             },
         });
 
         if (response.ok) {
-            console.log('User data successfully sent.');
+            console.log('There is not a user with such an email, continue to register form.');
 
-            return { username: newUser.username, password: newUser.password };
+            return {newUser };
         } else {
             console.error('Failed to send user data.');
             return null;
@@ -81,13 +83,7 @@ router.get('/', async function (req: Request, res: Response, next) {
         // id: 0,
         firstName: '',
         lastName: '',
-        username: '',
-        password: '123',
         email: '',
-        birthDate: new Date('2000-01-01'), // Set birthDate to January 1, 2000
-        gender: '---',
-        address: '---',
-        phoneNumber: '---',
         registrationDate: new Date(), // Set registrationDate to the current date
         accountStatus: true,
         role: 'user',
@@ -103,8 +99,21 @@ router.get('/', async function (req: Request, res: Response, next) {
             redirectUrl
         );
 
+        // Set the scope to include email
+        const scopes = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'];
+
+        // Generate the URL for Google OAuth2 consent screen
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: scopes,
+        });
+
+
         // Obtaining tokens using the authorization code
         const tokenResponse = await oAuth2Client.getToken(code);
+
+        // Extracting id token from the tokenResponse
+        const idToken = tokenResponse.tokens.id_token;
 
         // Setting the obtained tokens as credentials for the OAuth2 client
         await oAuth2Client.setCredentials(tokenResponse.tokens);
@@ -114,36 +123,54 @@ router.get('/', async function (req: Request, res: Response, next) {
         const user = oAuth2Client.credentials;
         console.log('credentials', user);
 
+        const ticket = await oAuth2Client.verifyIdToken({idToken:user.id_token,audience:process.env.CLIENT_ID,});
+
+        console.log('ticket',ticket);
+
+        // Access the payload of the ticket
+        const payload = ticket.getPayload();
+
+        // Extract the email from the payload
+        const email = payload['email'];
+
+        console.log('User email:', email);
+
         // Fetching user data using the obtained access token
         const googleUserData = await getUsersData(user.access_token);
         console.log("Google user data is: ",googleUserData);
+        console.log('ticket', ticket);
+        console.log('email', email);
 
         appUserData = {
             // id: 0,
             firstName: googleUserData.given_name,
             lastName: googleUserData.family_name,
-            username: `${googleUserData.given_name}${googleUserData.family_name}`,
-            password: '123',
-            email: `${googleUserData.given_name}${googleUserData.family_name}@gmail.com`,
-            birthDate: new Date('2000-01-01'), // Set birthDate to January 1, 2000
-            gender: '---',
-            address: '---',
-            phoneNumber: '---',
+            email: email,
             registrationDate: new Date(), // Set registrationDate to the current date
             accountStatus: true,
             role: 'user',
         }
 
-        // req.body.userData = appUserData;
 
     } catch (error) {
         console.log('Error with signing in with Google.', error);
     } finally {
-        const createdUser = await sendUserData(appUserData);
+        const isNewUser = await sendUserData(appUserData);
 
-        if (createdUser) {
-            window.alert('User registered successfully! Please log in.');
-            res.redirect(`http://127.0.0.1:3000/login}`);
+        if (isNewUser) {
+            window.alert('Google user verification was successfully performed, you are forwarded to further registration.');
+
+            // Define secret key for the token which will be send to front side with user data
+            const secretKey = 'CAESARCODE'; // Caesar cipher key
+
+            // Generate a JWT token with user details
+            const token = jwt.sign({ appUserData }, caesarCipher(secretKey, 3), { expiresIn: '1h' });
+
+            // Send the token to the frontend
+            res.json({ token });
+
+            // Redirect to the frontend login page with the token as a query parameter
+            res.redirect(`http://127.0.0.1:3000/SignIn?token=${token}`);
         }
     }
 });

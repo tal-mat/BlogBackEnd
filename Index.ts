@@ -16,7 +16,7 @@ app.use(express.json());
 
 app.use(activityLogger);
 
-app.use(addUserHandler);
+// app.use(addUserHandler);
 
 app.use("/posts", postsRoute);
 

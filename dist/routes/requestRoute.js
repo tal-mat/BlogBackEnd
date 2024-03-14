@@ -17,7 +17,6 @@ const requestsRoute = express_1.default.Router();
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const google_auth_library_1 = require("google-auth-library");
-// Handle POST requests to the specified route
 requestsRoute.post('/', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     // Set CORS headers to allow requests from http://localhost:3000
     res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
@@ -30,7 +29,8 @@ requestsRoute.post('/', (req, res, next) => __awaiter(void 0, void 0, void 0, fu
     // Use oAuth2Client to generate the URL that will be used to initiate the Google authentication
     const authorizeUrl = oAuth2Client.generateAuthUrl({
         access_type: 'offline',
-        scope: 'https://www.googleapis.com/auth/userinfo.profile openid',
+        // scope: 'https://www.googleapis.com/auth/userinfo.profile openid',
+        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
         prompt: 'consent'
     });
     // Send the generated authentication URL as JSON response

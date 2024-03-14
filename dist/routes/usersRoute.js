@@ -18,6 +18,7 @@ const UserBL_1 = require("../BL/UserBL");
 const UserRepository_1 = require("../dal/UserRepository");
 const usersRoute = express_1.default.Router();
 const userController = new UserController_1.UserController(new UserBL_1.UserBL(new UserRepository_1.UserRepository()));
+usersRoute.get('/valid', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.checkUserIsValid(req, res); }));
 usersRoute.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.addUser(req, res); }));
 usersRoute.get('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.getUser(req, res); }));
 usersRoute.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.getUsers(req, res); }));

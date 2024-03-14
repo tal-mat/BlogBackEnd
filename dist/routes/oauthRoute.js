@@ -22,7 +22,6 @@ function getUsersData(access_token) {
     return __awaiter(this, void 0, void 0, function* () {
         const response = yield fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${access_token}`);
         const data = yield response.json();
-        // console.log('data', data);
         return data;
     });
 }
@@ -54,7 +53,6 @@ function sendUserData(userData) {
             });
             if (response.ok) {
                 console.log('User data successfully sent.');
-                // Return the username and password
                 return { username: newUser.username, password: newUser.password };
             }
             else {
@@ -93,28 +91,46 @@ router.get('/', function (req, res, next) {
             // Configuring the OAuth2 client with client ID, client secret, and redirect URL
             const redirectUrl = 'http://127.0.0.1:4000/oauth';
             const oAuth2Client = new OAuth2Client(process.env.CLIENT_ID, process.env.CLIENT_SECRET, redirectUrl);
+            // Set the scope to include email
+            const scopes = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'];
+            // Generate the URL for Google OAuth2 consent screen
+            const authUrl = oAuth2Client.generateAuthUrl({
+                access_type: 'offline',
+                scope: scopes,
+            });
             // Obtaining tokens using the authorization code
             const tokenResponse = yield oAuth2Client.getToken(code);
+            // Extracting id token from the tokenResponse
+            const idToken = tokenResponse.tokens.id_token;
             // Setting the obtained tokens as credentials for the OAuth2 client
             yield oAuth2Client.setCredentials(tokenResponse.tokens);
             console.log('Tokens acquired');
             // Accessing user credentials from the OAuth2 client
             const user = oAuth2Client.credentials;
             console.log('credentials', user);
+            const ticket = yield oAuth2Client.verifyIdToken({ idToken: user.id_token, audience: process.env.CLIENT_ID, });
+            console.log('ticket', ticket);
+            // Access the payload of the ticket
+            const payload = ticket.getPayload();
+            // Extract the email from the payload
+            const email = payload['email'];
+            console.log('User email:', email);
             // Fetching user data using the obtained access token
             const googleUserData = yield getUsersData(user.access_token);
             console.log("Google user data is: ", googleUserData);
+            console.log('ticket', ticket);
+            console.log('email', email);
             appUserData = {
                 // id: 0,
                 firstName: googleUserData.given_name,
                 lastName: googleUserData.family_name,
-                username: `${googleUserData.given_name}${googleUserData.family_name}`,
-                password: '123',
-                email: `${googleUserData.given_name}${googleUserData.family_name}@gmail.com`,
+                username: '',
+                password: '',
+                email: email,
                 birthDate: new Date('2000-01-01'), // Set birthDate to January 1, 2000
-                gender: '---',
-                address: '---',
-                phoneNumber: '---',
+                gender: '',
+                address: '',
+                phoneNumber: '',
                 registrationDate: new Date(), // Set registrationDate to the current date
                 accountStatus: true,
                 role: 'user',
@@ -122,14 +138,11 @@ router.get('/', function (req, res, next) {
             // req.body.userData = appUserData;
         }
         catch (error) {
-            // Handling errors that may occur during the OAuth process
             console.log('Error with signing in with Google.', error);
         }
         finally {
-            // Send user data and receive username/password if successful
             const createdUser = yield sendUserData(appUserData);
             if (createdUser) {
-                // Redirect to the login page on the frontend
                 window.alert('User registered successfully! Please log in.');
                 res.redirect(`http://127.0.0.1:3000/login}`);
             }
