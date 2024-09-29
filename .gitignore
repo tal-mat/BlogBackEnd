@@ -18,14 +18,20 @@ npm-debug.log*
 .vscode/
 .idea/
 
+# Ignore logs and temporary files
+logs
+*.log
+npm-debug.log*
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+
 # Ignore compiled files
 *.tsbuildinfo
 dist/
 build/
-
-# Ignore scripts
-.scripts/
-.dal/
+bin/
 
 # Ignore specific route file
 routes/oauthRoute - עותק.ts
