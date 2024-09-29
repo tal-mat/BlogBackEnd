@@ -18,11 +18,21 @@ const UserBL_1 = require("../BL/UserBL");
 const UserRepository_1 = require("../dal/UserRepository");
 const usersRoute = express_1.default.Router();
 const userController = new UserController_1.UserController(new UserBL_1.UserBL(new UserRepository_1.UserRepository()));
-usersRoute.get('/valid', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.checkUserIsValid(req, res); }));
+const authUser_1 = __importDefault(require("../middlewares/authUser"));
+const middlewareFunctions = [
+    authUser_1.default.authUserSecured,
+    authUser_1.default.isAdmin
+];
+usersRoute.put('/resetPass/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.resetPasswordByAdmin(req, res); }));
+// // Routes not requiring authentication
 usersRoute.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.addUser(req, res); }));
-usersRoute.get('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.getUser(req, res); }));
-usersRoute.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.getUsers(req, res); }));
-usersRoute.put('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.updateUser(req, res); }));
-usersRoute.delete('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.deleteUser(req, res); }));
+usersRoute.get('/valid', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.checkUserIsValid(req, res); }));
 usersRoute.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.getUserByLogin(req, res); }));
+// Routes requiring authentication as "User"
+usersRoute.post('/signout', middlewareFunctions[0], (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.signOut(req, res); }));
+// Routes requiring authentication as "Admin"
+usersRoute.get('/:id', middlewareFunctions, (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.getUser(req, res); }));
+usersRoute.get('/', middlewareFunctions, (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.getUsers(req, res); }));
+usersRoute.delete('/:id', middlewareFunctions, (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.deleteUser(req, res); }));
+usersRoute.put('/:id', middlewareFunctions, (req, res) => __awaiter(void 0, void 0, void 0, function* () { return yield userController.updateUser(req, res); }));
 exports.default = usersRoute;

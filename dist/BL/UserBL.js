@@ -11,6 +11,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserBL = void 0;
 const CustomErrors_1 = require("../errors/CustomErrors");
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
 class UserBL {
     constructor(userDataAccess) {
         this.userDataAccess = userDataAccess;
@@ -78,7 +80,9 @@ class UserBL {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const user = yield this.userDataAccess.getUserByLogin(username, password);
-                return user;
+                const { MY_SECRET } = process.env;
+                const token = jwt.sign({ user }, MY_SECRET, { expiresIn: '2m' });
+                return { token, userFirstName: user.firstName };
             }
             catch (error) {
                 if (error instanceof CustomErrors_1.UserNotFoundError || error instanceof CustomErrors_1.IncorrectPasswordError) {
@@ -107,6 +111,16 @@ class UserBL {
                     // @ts-ignore
                     throw new Error(error.message);
                 }
+            }
+        });
+    }
+    resetPasswordByAdmin(userID) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.userDataAccess.resetPasswordByAdmin(userID);
+            }
+            catch (error) {
+                throw new Error(`Unable to reset password for the user with ID ${userID}: ${error.message}`);
             }
         });
     }

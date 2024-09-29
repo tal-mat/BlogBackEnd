@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRepository = void 0;
 const DBConnect_1 = __importDefault(require("../dal/DBConnect"));
 const CustomErrors_1 = require("../errors/CustomErrors");
+const nodemailer_1 = __importDefault(require("nodemailer"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 class UserRepository {
     add(user) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -26,13 +28,14 @@ class UserRepository {
             if (emailExists) {
                 throw new CustomErrors_1.DuplicateEmailError(user.email);
             }
+            const hashedPassword = bcryptjs_1.default.hashSync(user.password, 10);
             const query = 'INSERT INTO public."user" ("firstName", "lastName", "username", "password", "email", "birthDate", "gender", "address", "phoneNumber", ' +
                 '"registrationDate", "accountStatus", "role") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)';
             yield DBConnect_1.default.query(query, [
                 user.firstName,
                 user.lastName,
                 user.username,
-                user.password,
+                hashedPassword,
                 user.email,
                 user.birthDate,
                 user.gender,
@@ -100,9 +103,20 @@ class UserRepository {
                 throw new CustomErrors_1.UserNotFoundError(username);
             }
             const user = result.rows[0];
+            const isMatch = yield bcryptjs_1.default.compare(password, user.password);
             // Check if the password is correct
-            if (user.password !== password) {
-                throw new CustomErrors_1.IncorrectPasswordError();
+            if (user.password.startsWith('$2')) {
+                // For normal cases where the Password is hashed
+                const isMatch = yield bcryptjs_1.default.compare(password, user.password);
+                if (!isMatch) {
+                    throw new CustomErrors_1.IncorrectPasswordError();
+                }
+            }
+            else {
+                // For examples users cases where thePassword is plain text
+                if (user.password !== password) {
+                    throw new CustomErrors_1.IncorrectPasswordError();
+                }
             }
             return user;
         });
@@ -131,6 +145,55 @@ class UserRepository {
             const query = 'SELECT * FROM public."user" WHERE email = $1';
             const result = yield DBConnect_1.default.query(query, [email]);
             return result.rows.length > 0;
+        });
+    }
+    resetPasswordByAdmin(userID) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Get the user's email
+            const emailQuery = 'SELECT email FROM public."user" WHERE id = $1';
+            const { rows } = yield DBConnect_1.default.query(emailQuery, [userID]);
+            if (rows.length === 0) {
+                throw new Error(`User with ID ${userID} not found.`);
+            }
+            const userEmail = rows[0].email;
+            // Generate a new password
+            const newPassword = Math.random().toString(36).slice(-8);
+            const hashedPassword = bcryptjs_1.default.hashSync(newPassword, 10);
+            // Update the user's password in the database
+            const query = 'UPDATE public."user" SET password = $1 WHERE id = $2';
+            const result = yield DBConnect_1.default.query(query, [hashedPassword, userID]);
+            if (result.rowCount === 0) {
+                throw new Error(`Unable to reset password for the user with ID ${userID}. User not found.`);
+            }
+            // Send the new password to the user's email
+            const transporter = nodemailer_1.default.createTransport({
+                host: process.env.MAIL_HOST,
+                port: 465,
+                secure: true,
+                auth: {
+                    user: process.env.MAIL_AUTH_USER,
+                    pass: process.env.MAIL_AUTH_PASSWORD
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+            console.log("transporter: ", transporter);
+            const mailOptions = {
+                from: process.env.MAIL_AUTH_USER,
+                to: userEmail,
+                subject: 'Your New Password',
+                text: `Your new password is: ${newPassword}`
+            };
+            console.log('Attempting to send email with options:', mailOptions);
+            try {
+                const info = yield transporter.sendMail(mailOptions);
+                console.log('Password reset email sent:', info.response);
+            }
+            catch (error) {
+                console.error('Error sending email:', error);
+                throw new Error('Error sending email');
+            }
         });
     }
 }

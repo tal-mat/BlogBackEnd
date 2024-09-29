@@ -16,7 +16,11 @@ const express_1 = __importDefault(require("express"));
 const router = express_1.default.Router();
 const dotenv = require('dotenv');
 dotenv.config();
+const jwt = require('jsonwebtoken');
+const dotenv_1 = require("dotenv");
+(0, dotenv_1.config)(); // Load .env file
 const { OAuth2Client } = require('google-auth-library');
+let tokenUserDetails = "";
 // Function to fetch user data from Google API using the access token
 function getUsersData(access_token) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -33,31 +37,21 @@ function sendUserData(userData) {
             let newUser = {
                 "firstName": userData.firstName,
                 "lastName": userData.lastName,
-                "username": userData.username,
-                "password": userData.password,
                 "email": userData.email,
-                "birthDate": userData.birthDate,
-                "gender": userData.gender,
-                "address": userData.address,
-                "phoneNumber": userData.phoneNumber,
                 "registrationDate": date.current,
                 "accountStatus": true,
                 "role": "user",
             };
-            const response = yield fetch('http://127.0.0.1:4000/users', {
-                method: "POST",
-                body: JSON.stringify(newUser),
+            const response = yield fetch(`http://127.0.0.1:4000/users/valid?email=${encodeURIComponent(userData.email)}`, {
+                method: "GET",
+                credentials: "include",
                 headers: {
                     'Content-Type': 'application/json'
                 },
             });
             if (response.ok) {
-                console.log('User data successfully sent.');
-                return { username: newUser.username, password: newUser.password };
-            }
-            else {
-                console.error('Failed to send user data.');
-                return null;
+                console.log('There is not a user with such an email, continue to register form.');
+                return { newUser };
             }
         }
         catch (error) {
@@ -76,13 +70,7 @@ router.get('/', function (req, res, next) {
             // id: 0,
             firstName: '',
             lastName: '',
-            username: '',
-            password: '123',
             email: '',
-            birthDate: new Date('2000-01-01'), // Set birthDate to January 1, 2000
-            gender: '---',
-            address: '---',
-            phoneNumber: '---',
             registrationDate: new Date(), // Set registrationDate to the current date
             accountStatus: true,
             role: 'user',
@@ -124,29 +112,66 @@ router.get('/', function (req, res, next) {
                 // id: 0,
                 firstName: googleUserData.given_name,
                 lastName: googleUserData.family_name,
-                username: '',
-                password: '',
                 email: email,
-                birthDate: new Date('2000-01-01'), // Set birthDate to January 1, 2000
-                gender: '',
-                address: '',
-                phoneNumber: '',
                 registrationDate: new Date(), // Set registrationDate to the current date
                 accountStatus: true,
                 role: 'user',
             };
-            // req.body.userData = appUserData;
         }
         catch (error) {
             console.log('Error with signing in with Google.', error);
         }
         finally {
-            const createdUser = yield sendUserData(appUserData);
-            if (createdUser) {
-                window.alert('User registered successfully! Please log in.');
-                res.redirect(`http://127.0.0.1:3000/login}`);
+            const isNewUser = yield sendUserData(appUserData);
+            if (isNewUser) {
+                try {
+                    const { MY_SECRET } = process.env;
+                    console.log(MY_SECRET);
+                    // Generate a JWT token with user details
+                    tokenUserDetails = jwt.sign({ appUserData }, MY_SECRET, { expiresIn: '1h' });
+                    const registrationFormUrl = 'http://127.0.0.1:3000/SignIn';
+                    // Send a success response to the frontend
+                    res.redirect(registrationFormUrl);
+                }
+                catch (error) {
+                    console.error('Error generating JWT token:', error);
+                    res.status(500).json({ error: 'Internal Server Error' });
+                }
+            }
+            else {
+                res.redirect("http://127.0.0.1:3000/login?error=duplicate_email");
             }
         }
     });
+});
+// Function to send HTTP response with token as cookie
+router.get('/get-token-cookie', function (req, res, next) {
+    try {
+        if (tokenUserDetails != "") {
+            // Default cookie options
+            const defaultOptions = {
+                domain: 'http://127.0.0.1',
+                path: '/',
+                httpOnly: false,
+                secure: false, // Set it to true if using HTTPS
+                // Add more options as needed
+            };
+            // Merge default options with provided options
+            const cookieOptions = Object.assign({}, defaultOptions);
+            // Set the token as an HTTP-only cookie in the response headers
+            res.cookie('token', tokenUserDetails, cookieOptions);
+            // Log the Set-Cookie header to verify that the cookie has been set
+            console.log("Set-Cookie header:", res.get('Set-Cookie'));
+            // Respond with a success message or any other response as needed
+            res.status(200).json({ message: 'Token cookie set successfully' });
+        }
+        else {
+            res.status(400).json({ error: 'Token is not available' });
+        }
+    }
+    catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 exports.default = router;

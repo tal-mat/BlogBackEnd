@@ -103,8 +103,18 @@ class UserController {
         return __awaiter(this, void 0, void 0, function* () {
             const { username, password } = req.body;
             try {
-                const user = yield this.userBL.getUserByLogin(username, password);
-                res.status(200).send(user);
+                const { token, userFirstName } = yield this.userBL.getUserByLogin(username, password);
+                // console.log("Token at the userController: ", token);
+                res.cookie('token', token, {
+                    domain: '127.0.0.1',
+                    path: '/',
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "lax",
+                    maxAge: 2 * 60 * 1000 // 1 minute in milliseconds
+                });
+                // console.log("Set-Cookie headers:", res.getHeaders()['set-cookie']);
+                res.status(200).json({ message: 'Authentication successful', userFirstName });
             }
             catch (error) {
                 let statusCode;
@@ -158,6 +168,38 @@ class UserController {
                     errorMessage = 'An unexpected error occurred';
                 }
                 res.status(statusCode).json({ error: errorMessage, errorType, details: error.message });
+            }
+        });
+    }
+    signOut(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // Clear the 'token' cookie by setting its value to an empty string and maxAge to 0
+                res.cookie('token', '', {
+                    domain: '127.0.0.1',
+                    path: '/',
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: 'lax',
+                    expires: new Date(0) // Set expires to a past date to expire the cookie
+                });
+                res.status(200).send("User signed out successfully.");
+            }
+            catch (error) {
+                console.error('Error signing out:', error);
+                res.status(500).send("Internal server error.");
+            }
+        });
+    }
+    resetPasswordByAdmin(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userID = +req.params.id;
+            try {
+                yield this.userBL.resetPasswordByAdmin(userID);
+                res.status(200).send({ message: `User ${userID} password was reset successfully` });
+            }
+            catch (error) {
+                res.status(500).send(error.message);
             }
         });
     }

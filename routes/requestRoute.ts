@@ -7,7 +7,7 @@ import {OAuth2Client} from 'google-auth-library';
 
 requestsRoute.post('/', async (req: Request, res: Response, next) => {
     // Set CORS headers to allow requests from http://localhost:3000
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.header('Access-Control-Allow-Origin', 'http://127.0.0.1:3000');
 
     // Set Referrer Policy header for security
     res.header('Referrer-Policy', 'no-referrer-when-downgrade');

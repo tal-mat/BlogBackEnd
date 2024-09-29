@@ -1,11 +1,13 @@
 import { Client } from 'pg';
+require('dotenv').config();
+
 
 export const helloWorldHandler = async (req: any, res: { json: (arg0: { message: any; }) => void; status: (arg0: number) => { (): any; new(): any; json: { (arg0: { error: string; }): void; new(): any; }; }; }) => {
     const client = new Client({
-        host: 'blog_db',
-        port: 5432,
-        user: 'postgres',
-        password: 'Taltal1993',
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
     });
 
     try {

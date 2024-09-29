@@ -11,12 +11,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.helloWorldHandler = void 0;
 const pg_1 = require("pg");
+require('dotenv').config();
 const helloWorldHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const client = new pg_1.Client({
-        host: 'blog_db',
-        port: 5432,
-        user: 'postgres',
-        password: 'Taltal1993',
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
     });
     try {
         yield client.connect();

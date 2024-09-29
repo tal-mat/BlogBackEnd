@@ -19,7 +19,7 @@ dotenv_1.default.config();
 const google_auth_library_1 = require("google-auth-library");
 requestsRoute.post('/', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     // Set CORS headers to allow requests from http://localhost:3000
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.header('Access-Control-Allow-Origin', 'http://127.0.0.1:3000');
     // Set Referrer Policy header for security
     res.header('Referrer-Policy', 'no-referrer-when-downgrade');
     // Define the redirect URL after Google authentication

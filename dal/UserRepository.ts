@@ -5,6 +5,9 @@ import { UserNotFoundError,
     IncorrectPasswordError,
     DuplicateUsernameError,
     DuplicateEmailError } from '../errors/CustomErrors';
+import nodemailer from 'nodemailer';
+import bcrypt from 'bcryptjs';
+
 
 export class UserRepository implements DataAccess<User> {
 
@@ -20,6 +23,8 @@ export class UserRepository implements DataAccess<User> {
             throw new DuplicateEmailError(user.email);
         }
 
+        const hashedPassword = bcrypt.hashSync(user.password, 10);
+
         const query = 'INSERT INTO public."user" ("firstName", "lastName", "username", "password", "email", "birthDate", "gender", "address", "phoneNumber", ' +
             '"registrationDate", "accountStatus", "role") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)';
 
@@ -27,7 +32,7 @@ export class UserRepository implements DataAccess<User> {
             user.firstName,
             user.lastName,
             user.username,
-            user.password,
+            hashedPassword,
             user.email,
             user.birthDate,
             user.gender,
@@ -103,14 +108,26 @@ export class UserRepository implements DataAccess<User> {
         }
 
         const user = result.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password);
+
 
         // Check if the password is correct
-        if (user.password !== password) {
-            throw new IncorrectPasswordError();
+        if (user.password.startsWith('$2')) {
+            // For normal cases where the Password is hashed
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                throw new IncorrectPasswordError();
+            }
+        } else {
+            // For examples users cases where thePassword is plain text
+            if (user.password !== password) {
+                throw new IncorrectPasswordError();
+            }
         }
 
         return user;
     }
+
 
     async checkUserIsValid(email: string): Promise<boolean> {
         // if (!email || typeof email !== 'string') {
@@ -140,4 +157,64 @@ export class UserRepository implements DataAccess<User> {
         return result.rows.length > 0;
     }
 
+    async resetPasswordByAdmin(userID: number): Promise<void> {
+        // Get the user's email
+        const emailQuery = 'SELECT email FROM public."user" WHERE id = $1';
+        const { rows } = await pool.query(emailQuery, [userID]);
+
+        if (rows.length === 0) {
+            throw new Error(`User with ID ${userID} not found.`);
+        }
+
+        const userEmail = rows[0].email;
+
+        // Generate a new password
+        const newPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+        // Update the user's password in the database
+        const query = 'UPDATE public."user" SET password = $1 WHERE id = $2';
+        const result = await pool.query(query, [hashedPassword, userID]);
+
+        if (result.rowCount === 0) {
+            throw new Error(`Unable to reset password for the user with ID ${userID}. User not found.`);
+        }
+
+        // Send the new password to the user's email
+        const transporter = nodemailer.createTransport({
+            host: process.env.MAIL_HOST,
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.MAIL_AUTH_USER,
+                pass: process.env.MAIL_AUTH_PASSWORD
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        console.log("transporter: ", transporter);
+
+        const mailOptions = {
+            from: process.env.MAIL_AUTH_USER,
+            to: userEmail,
+            subject: 'Your New Password',
+            text: `Your new password is: ${newPassword}`
+        };
+
+        console.log('Attempting to send email with options:', mailOptions);
+
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            console.log('Password reset email sent:', info.response);
+        } catch (error) {
+            console.error('Error sending email:', error);
+            throw new Error('Error sending email');
+        }
+    }
+
+
+
 }
+

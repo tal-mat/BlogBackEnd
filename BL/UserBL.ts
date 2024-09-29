@@ -6,6 +6,9 @@ import {
     DuplicateUsernameError,
     DuplicateEmailError
 } from '../errors/CustomErrors';
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+
 
 export class UserBL {
     private userDataAccess: UserRepository;
@@ -66,10 +69,13 @@ export class UserBL {
         }
     }
 
-    async getUserByLogin(username: string, password: string): Promise<User> {
+
+    async getUserByLogin(username: string, password: string): Promise<{ token: string, userFirstName: string }> {
         try {
             const user = await this.userDataAccess.getUserByLogin(username, password);
-            return user;
+            const { MY_SECRET } = process.env;
+            const token = jwt.sign({ user }, MY_SECRET, { expiresIn: '2m' });
+            return { token, userFirstName: user.firstName };
         } catch (error) {
             if (error instanceof UserNotFoundError || error instanceof IncorrectPasswordError) {
                 throw error; // Re-throw specific errors
@@ -97,5 +103,11 @@ export class UserBL {
         }
     }
 
-
+    async resetPasswordByAdmin(userID: number): Promise<void> {
+        try {
+            await this.userDataAccess.resetPasswordByAdmin(userID);
+        } catch (error) {
+            throw new Error(`Unable to reset password for the user with ID ${userID}: ${(error as Error).message}`);
+        }
+    }
 }

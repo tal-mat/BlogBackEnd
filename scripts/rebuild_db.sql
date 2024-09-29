@@ -3,10 +3,6 @@
 DROP DATABASE IF EXISTS blog_db;
 
 -- Create a new database
-CREATE DATABASE blog_db;
-
--- Connect to the desired database
-\c blog_db;
 
 -- Create sequence for post_id
 CREATE SEQUENCE post_id_seq;

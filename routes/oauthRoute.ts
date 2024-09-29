@@ -1,35 +1,16 @@
-import express, { Request, Response } from 'express';
+import express, {Request, Response} from 'express';
 const router = express.Router();
 const dotenv = require('dotenv');
 dotenv.config();
 const jwt = require('jsonwebtoken');
+import { config } from 'dotenv';
+config(); // Load .env file
 const { OAuth2Client } = require('google-auth-library');
+import { AppUserData } from '../interfaces/AppUserData';
+import {DuplicateEmailError} from "../errors/CustomErrors";
 
-// Define an interface for google user data
-interface AppUserData {
-    // id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    registrationDate: Date;
-    accountStatus: boolean;
-    role: string;
-}
+let tokenUserDetails = "";
 
-// Caesar cipher encryption function for encode the userData as token to the front side
-function caesarCipher(text: string, shift: number): string {
-    return text
-        .split('')
-        .map(char => {
-            const code = char.charCodeAt(0);
-            if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
-                return String.fromCharCode(((code - 65 + shift) % 26) + 65);
-            } else {
-                return char;
-            }
-        })
-        .join('');
-}
 
 // Function to fetch user data from Google API using the access token
 async function getUsersData(access_token: string) {
@@ -51,9 +32,9 @@ async function sendUserData(userData: AppUserData) {
             "role": "user",
         };
 
-        const response = await fetch('http://127.0.0.1:4000/users/valid', {
+        const response = await fetch(`http://127.0.0.1:4000/users/valid?email=${encodeURIComponent(userData.email)}`, {
             method: "GET",
-            body: JSON.stringify(newUser.email),
+            credentials: "include",
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -61,18 +42,13 @@ async function sendUserData(userData: AppUserData) {
 
         if (response.ok) {
             console.log('There is not a user with such an email, continue to register form.');
-
-            return {newUser };
-        } else {
-            console.error('Failed to send user data.');
-            return null;
+            return {newUser};
         }
     } catch (error) {
         console.error('Error sending user data:', error);
         return null;
     }
 }
-
 
 // Route handler for handling the OAuth callback
 router.get('/', async function (req: Request, res: Response, next) {
@@ -88,7 +64,6 @@ router.get('/', async function (req: Request, res: Response, next) {
         accountStatus: true,
         role: 'user',
     };
-
 
     try {
         // Configuring the OAuth2 client with client ID, client secret, and redirect URL
@@ -107,7 +82,6 @@ router.get('/', async function (req: Request, res: Response, next) {
             access_type: 'offline',
             scope: scopes,
         });
-
 
         // Obtaining tokens using the authorization code
         const tokenResponse = await oAuth2Client.getToken(code);
@@ -158,22 +132,64 @@ router.get('/', async function (req: Request, res: Response, next) {
         const isNewUser = await sendUserData(appUserData);
 
         if (isNewUser) {
-            window.alert('Google user verification was successfully performed, you are forwarded to further registration.');
+            try {
 
-            // Define secret key for the token which will be send to front side with user data
-            const secretKey = 'CAESARCODE'; // Caesar cipher key
+                const { MY_SECRET } = process.env;
 
-            // Generate a JWT token with user details
-            const token = jwt.sign({ appUserData }, caesarCipher(secretKey, 3), { expiresIn: '1h' });
+                console.log(MY_SECRET);
 
-            // Send the token to the frontend
-            res.json({ token });
+                // Generate a JWT token with user details
+                tokenUserDetails = jwt.sign({ appUserData }, MY_SECRET, { expiresIn: '1h' });
 
-            // Redirect to the frontend login page with the token as a query parameter
-            res.redirect(`http://127.0.0.1:3000/SignIn?token=${token}`);
+                const registrationFormUrl = 'http://127.0.0.1:3000/SignIn';
+
+                // Send a success response to the frontend
+                res.redirect(registrationFormUrl);
+
+            } catch (error) {
+                console.error('Error generating JWT token:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        } else {
+            res.redirect("http://127.0.0.1:3000/login?error=duplicate_email");
         }
     }
 });
+
+
+// Function to send HTTP response with token as cookie
+router.get('/get-token-cookie', function(req, res, next) {
+    try {
+        if (tokenUserDetails != "" ) {
+        // Default cookie options
+        const defaultOptions = {
+            domain: 'http://127.0.0.1',
+            path: '/',
+            httpOnly: false,
+            secure: false, // Set it to true if using HTTPS
+            // Add more options as needed
+        };
+
+        // Merge default options with provided options
+        const cookieOptions = { ...defaultOptions };
+
+        // Set the token as an HTTP-only cookie in the response headers
+        res.cookie('token', tokenUserDetails, cookieOptions);
+
+        // Log the Set-Cookie header to verify that the cookie has been set
+        console.log("Set-Cookie header:", res.get('Set-Cookie'));
+
+        // Respond with a success message or any other response as needed
+        res.status(200).json({ message: 'Token cookie set successfully' });
+        } else {
+            res.status(400).json({ error: 'Token is not available' });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 
 
 export default router;
