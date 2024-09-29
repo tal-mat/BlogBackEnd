@@ -1,0 +1,35 @@
+# Ignore environment variables
+.env
+.env.d.ts
+
+# Ignore Docker files
+Dockerfile
+.dockerignore
+
+# Ignore node modules
+node_modules/
+
+# Ignore logs and temporary files
+logs/
+*.log
+npm-debug.log*
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+
+# Ignore compiled files
+*.tsbuildinfo
+dist/
+build/
+bin/
+
+# Ignore specific route file
+routes/oauthRoute - עותק.ts
+
+# Ignore conflicts directory
+olve conflicts/
+
+# Ignore specific directories
+models/ORM/
+public/stylesheets/
