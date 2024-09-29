@@ -10,16 +10,7 @@ Dockerfile
 node_modules/
 
 # Ignore logs and temporary files
-logs
-*.log
-npm-debug.log*
-
-# Ignore IDE and editor files
-.vscode/
-.idea/
-
-# Ignore logs and temporary files
-logs
+logs/
 *.log
 npm-debug.log*
 
@@ -38,3 +29,7 @@ routes/oauthRoute - עותק.ts
 
 # Ignore conflicts directory
 olve conflicts/
+
+# Ignore specific directories
+models/ORM/
+public/stylesheets/
